@@ -1,4 +1,6 @@
 import { BitArray } from "../../deps.ts";
+// deno-lint-ignore camelcase
+import { Type_HuffmanEncodeResult, Type_HuffmanObjectTree } from "../../mod.ts";
 
 class NodeData {
     value: number | null = null;
@@ -40,16 +42,6 @@ class Node {
         }
     }
 }
-
-// deno-lint-ignore camelcase
-type Type_HuffmanObjectTree = { [x: string]: [x: string] | number };
-
-// deno-lint-ignore camelcase
-type Type_HuffmanEncodeResult = {
-    codeTable: number[][];
-    bitArray: BitArray;
-    tree: Type_HuffmanObjectTree;
-};
 
 /**
  * Huffman compression/decompression algorithm. It build code tables, tree and bitarray.
@@ -180,7 +172,7 @@ export class Huffman {
      * { "0": { "0": 1 } }
      * @param {number[][]} codeTable
      */
-    private static buildCodeTree(codeTable: number[][]) {
+    static buildCodeTree(codeTable: number[][]) {
         const tree: Type_HuffmanObjectTree = {};
 
         for (let i = 0; i < codeTable.length; i++) {
@@ -204,5 +196,106 @@ export class Huffman {
         }
 
         return tree;
+    }
+
+    static buildCodeTableFromLength(codes: number[], codeLengths: number[]) {
+        // deno-lint-ignore no-explicit-any
+        let tree: any = {
+            left: undefined,
+            right: undefined,
+            parent: undefined,
+        };
+        const root = tree;
+        const table: number[][] = [];
+
+        for (let i = 0; i < codes.length; i++) {
+            table[codes[i]] = [];
+        }
+
+        for (let i = 0; i < codes.length; i++) {
+            tree = root;
+
+            for (let j = 0; j < codeLengths[i]; j++) {
+                const isLast = j === codeLengths[i] - 1;
+
+                if (typeof tree.left === "number" && typeof tree.right === "number") {
+                    tree = tree.parent;
+                    if (tree.right === undefined) {
+                        tree.right = {
+                            left: undefined,
+                            right: undefined,
+                            parent: tree,
+                        };
+                        tree = tree.right;
+                        table[codes[i]] = table[codes[i]].slice(0, -1);
+                        table[codes[i]].push(1);
+                        j -= 1;
+                    } else if (typeof tree.right === "object") {
+                        tree = tree.right;
+                        table[codes[i]] = table[codes[i]].slice(0, -1);
+                        table[codes[i]].push(1);
+                        j -= 1;
+                    }
+
+                    continue;
+                }
+
+                if (!isLast && typeof tree.left === "object") {
+                    tree = tree.left;
+                    table[codes[i]].push(0);
+                    continue;
+                }
+                if (isLast && typeof tree.left === "object") {
+                    tree.left = codes[i];
+                    table[codes[i]].push(0);
+                    continue;
+                }
+                if (!isLast && typeof tree.right === "object") {
+                    tree = tree.right;
+                    table[codes[i]].push(1);
+                    continue;
+                }
+                if (isLast && typeof tree.right === "object") {
+                    tree.right = codes[i];
+                    table[codes[i]].push(1);
+                    continue;
+                }
+
+                if (tree.left === undefined) {
+                    if (isLast) {
+                        tree.left = codes[i];
+                        table[codes[i]].push(0);
+                    } else {
+                        tree.left = {
+                            left: undefined,
+                            right: undefined,
+                            parent: tree,
+                        };
+                        tree = tree.left;
+                        table[codes[i]].push(0);
+                    }
+                    continue;
+                }
+
+                if (tree.right === undefined) {
+                    if (isLast) {
+                        tree.right = codes[i];
+                        table[codes[i]].push(1);
+                    } else {
+                        tree.right = {
+                            left: undefined,
+                            right: undefined,
+                            parent: tree,
+                        };
+                        tree = tree.right;
+                        table[codes[i]].push(1);
+                    }
+
+                    continue;
+                }
+            }
+        }
+
+        return table;
     }
 }

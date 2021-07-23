@@ -35,3 +35,27 @@ Deno.test("bit utf text", () => {
         assertEquals(Huffman.decodeText(r.tree, r.bitArray), x);
     });
 });
+
+Deno.test("build codes from length", () => {
+    let t1 = Huffman.buildCodeTableFromLength([3, 2], [1, 2]);
+    assertEquals(t1[3], [0]);
+    assertEquals(t1[2], [1, 0]);
+
+    t1 = Huffman.buildCodeTableFromLength([1, 0, 12, 2, 11, 31, 21], [1, 3, 3, 4, 4, 4, 5]);
+    assertEquals(t1[1], [0]);
+    assertEquals(t1[0], [1, 0, 0]);
+    assertEquals(t1[12], [1, 0, 1]);
+    assertEquals(t1[2], [1, 1, 0, 0]);
+    assertEquals(t1[11], [1, 1, 0, 1]);
+    assertEquals(t1[31], [1, 1, 1, 0]);
+    assertEquals(t1[21], [1, 1, 1, 1, 0]);
+
+    t1 = Huffman.buildCodeTableFromLength([0, 1], [1, 2]);
+    assertEquals(t1[0], [0]);
+    assertEquals(t1[1], [1, 0]);
+
+    t1 = Huffman.buildCodeTableFromLength([11, 0, 1], [1, 2, 3]);
+    assertEquals(t1[11], [0]);
+    assertEquals(t1[0], [1, 0]);
+    assertEquals(t1[1], [1, 1, 0]);
+});
